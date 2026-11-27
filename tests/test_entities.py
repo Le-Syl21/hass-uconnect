@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+import hashlib
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -38,7 +39,15 @@ from custom_components.uconnect.image import BROWSER_HEADERS
 
 from .conftest import EV_VIN, ICE_VIN, IMAGE_URL, FakeClient
 
-CARD_URL = "/uconnect/uconnect-vehicle-card.js"
+CARD_URL = (
+    "/uconnect/uconnect-vehicle-card.js?v="
+    + hashlib.sha256(
+        (
+            Path(__file__).parents[1]
+            / "custom_components/uconnect/frontend/uconnect-vehicle-card.js"
+        ).read_bytes()
+    ).hexdigest()[:12]
+)
 PNG = b"\x89PNG\r\n\x1a\nimage"
 
 
@@ -366,3 +375,24 @@ async def test_vehicle_card_storage_dashboards(hass: HomeAssistant) -> None:
     )
     resources.async_delete_item.assert_awaited_once_with("card")
     add.assert_not_called()
+
+
+async def test_vehicle_card_resource_follows_the_card(hass: HomeAssistant) -> None:
+    # A resource left by an earlier version gets the URL of the current card,
+    # so browsers fetch the new JS instead of a cached copy
+    resources = SimpleNamespace(
+        loaded=True,
+        async_items=lambda: [
+            {"id": "card", "url": "/uconnect/uconnect-vehicle-card.js"}
+        ],
+        async_create_item=AsyncMock(),
+        async_update_item=AsyncMock(),
+    )
+    hass.data["lovelace"] = SimpleNamespace(resources=resources)
+
+    await async_setup_frontend_cards(hass)
+
+    resources.async_update_item.assert_awaited_once_with(
+        "card", {"res_type": "module", "url": CARD_URL}
+    )
+    resources.async_create_item.assert_not_called()

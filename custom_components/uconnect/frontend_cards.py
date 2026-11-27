@@ -7,6 +7,7 @@ Provides:
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 from typing import Any
@@ -29,7 +30,22 @@ _STATIC_BASE_URL = "/uconnect/uconnect-vehicle-card.js"
 _STATIC_RELATIVE_PATH = Path(__file__).parent / "frontend" / "uconnect-vehicle-card.js"
 
 
-async def _async_register_lovelace_resource(hass: HomeAssistant) -> str | None:
+def _versioned_url() -> str:
+    """Return the card URL with a hash of the JS, so browsers drop a cached old card.
+
+    The static path is served with long-lived cache headers: without a query that
+    changes with the content, an updated card would not load until the cache expires.
+    """
+    try:
+        digest = hashlib.sha256(_STATIC_RELATIVE_PATH.read_bytes()).hexdigest()[:12]
+    except OSError:
+        return _STATIC_BASE_URL
+    return f"{_STATIC_BASE_URL}?v={digest}"
+
+
+async def _async_register_lovelace_resource(
+    hass: HomeAssistant, url: str
+) -> str | None:
     """Register the card JS as a Lovelace resource.
 
     Defers loading of the ResourceStorageCollection to avoid corrupting
@@ -61,12 +77,15 @@ async def _async_register_lovelace_resource(hass: HomeAssistant) -> str | None:
             resources.loaded = True
 
         for item in resources.async_items():
-            if item.get("url") == _STATIC_BASE_URL:
-                return item["id"]
+            if item.get("url", "").split("?", 1)[0] != _STATIC_BASE_URL:
+                continue
+            if item.get("url") != url:
+                await resources.async_update_item(
+                    item["id"], {"res_type": "module", "url": url}
+                )
+            return item["id"]
 
-        item = await resources.async_create_item(
-            {"res_type": "module", "url": _STATIC_BASE_URL}
-        )
+        item = await resources.async_create_item({"res_type": "module", "url": url})
         return item["id"]
     except Exception as err:
         _LOGGER.warning("Unable to register Lovelace resource: %s", err)
@@ -108,7 +127,8 @@ async def async_setup_frontend_cards(hass: HomeAssistant) -> None:
     # Defer Lovelace resource registration until HA is fully started.
     # During startup ResourceStorageCollection may not be loaded yet.
     async def _register_resource(_event: Any = None) -> None:
-        resource_id = await _async_register_lovelace_resource(hass)
+        url = await hass.async_add_executor_job(_versioned_url)
+        resource_id = await _async_register_lovelace_resource(hass, url)
         if resource_id:
             domain_data[_RESOURCE_ID_KEY] = resource_id
             _LOGGER.debug("Registered Lovelace resource %s", resource_id)
@@ -116,11 +136,11 @@ async def async_setup_frontend_cards(hass: HomeAssistant) -> None:
             # No resource can be added e.g. in YAML mode: load the card JS on
             # every frontend page instead
             try:
-                add_extra_js_url(hass, _STATIC_BASE_URL)
+                add_extra_js_url(hass, url)
             except Exception as err:
                 _LOGGER.debug("Unable to add the card JS as extra module: %s", err)
                 return
-            domain_data[_EXTRA_JS_KEY] = True
+            domain_data[_EXTRA_JS_KEY] = url
             _LOGGER.info(
                 "Lovelace resource not registered (YAML mode?), "
                 "loading the vehicle card as an extra frontend module"
@@ -172,9 +192,10 @@ async def async_unload_frontend_cards_if_last_entry(
     if isinstance(resource_id, str) and resource_id:
         await _async_unregister_lovelace_resource(hass, resource_id)
 
-    if domain_data.pop(_EXTRA_JS_KEY, None):
+    extra_js_url = domain_data.pop(_EXTRA_JS_KEY, None)
+    if extra_js_url:
         try:
-            remove_extra_js_url(hass, _STATIC_BASE_URL)
+            remove_extra_js_url(hass, extra_js_url)
         except Exception as err:
             _LOGGER.debug("Unable to remove the card JS extra module: %s", err)
 
