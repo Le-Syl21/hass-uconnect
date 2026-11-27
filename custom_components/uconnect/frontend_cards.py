@@ -304,6 +304,12 @@ def _build_vehicle_list(hass: HomeAssistant) -> list[dict[str, Any]]:
             ("lights_horn", "button_lights_horn"),
             ("refresh_location", "button_location"),
             ("update", "update"),
+            ("deep_refresh", "button_deep_refresh"),
+            ("timestamp_status", "timestamp_status"),
+            ("last_location", "last_location_update"),
+            ("time_to_charge_l1", "time_to_fully_charge_l1"),
+            ("time_to_charge_l2", "time_to_fully_charge_l2"),
+            ("time_to_charge_l3", "time_to_fully_charge_l3"),
         ]
 
         for card_key, suffix in simple_mappings:

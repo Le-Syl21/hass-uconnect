@@ -15,12 +15,21 @@ const STRINGS = {
     card_description: "Vehicle card with indicators, SOC/range, image, map and quick info",
     device_id: "Vehicle",
     license_plate: "License plate (shown instead of VIN)",
-    show_indicators: "Show indicator row",
+    show_indicators: "Show the status and command tiles",
+    show_trail: "Show the trip trail on the map",
+    merge_trunk: "One lock for the doors and the trunk",
+    charge_times: "Charging times",
+    charge_times_note: "The vehicle's estimates, from {soc} % to a full battery.",
+    no_charge_times: "The vehicle gives no charging time estimate yet.",
+    car_l1: "Household socket",
+    car_l2: "Wallbox",
+    car_l3: "Fast charger",
+    close: "Close",
     show_range: "Show SOC and range bar",
     show_image: "Show vehicle image",
     show_map: "Show mini map",
     show_buttons: "Show quick info buttons",
-    show_actions: "Show action buttons",
+    show_actions: "Commands on the tiles",
     select_vehicle: "Select a vehicle in the card editor.",
     vehicle_not_found: "Vehicle not found yet. Try again in a few seconds.",
     no_tracker: "No vehicle tracker entity available",
@@ -61,11 +70,11 @@ const STRINGS = {
     unlock_doors: "Unlock",
     lock_trunk: "Lock trunk",
     unlock_trunk: "Unlock trunk",
-    precondition: "Precondition",
+    precondition: "Climate",
     hvac: "Climate",
     engine: "Remote start",
     charge_now: "Charge now",
-    lights: "Lights",
+    lights: "Flash lights",
     lights_horn: "Lights and horn",
     refresh_location: "Locate",
     update: "Update",
@@ -73,18 +82,49 @@ const STRINGS = {
     confirm_unlock_trunk: "Unlock the trunk?",
     confirm_engine: "Start the engine remotely?",
     action_failed: "The command failed: {error}",
+    tile_charging: "Charging",
+    tile_waiting: "Waiting",
+    tile_unplugged: "Unplugged",
+    tile_locked: "Locked",
+    tile_unlocked: "Unlocked",
+    tile_trunk_locked: "Trunk locked",
+    tile_trunk_unlocked: "Trunk unlocked",
+    tile_liftgate_locked: "Liftgate locked",
+    tile_liftgate_unlocked: "Liftgate unlocked",
+    tile_windows_closed: "Windows closed",
+    tile_windows_open: "Window open",
+    tile_running: "On",
+    start: "Start",
+    stop: "Stop",
+    refresh: "Refresh",
+    age_now: "just now",
+    age_min: "{n} min ago",
+    age_hour: "{n} h ago",
+    age_day: "{n} d ago",
+    position_age: "Position {age}",
+    alert_tires: "Check the tire pressure",
+    alert_12v: "12 V battery low ({value})",
   },
   fr: {
     card_name: "Véhicule Uconnect",
     card_description: "Carte du véhicule avec indicateurs, batterie/autonomie, image, carte et infos rapides",
     device_id: "Véhicule",
     license_plate: "Plaque d'immatriculation (affichée à la place du VIN)",
-    show_indicators: "Afficher la ligne d'indicateurs",
+    show_indicators: "Afficher les tuiles d'état et de commande",
+    show_trail: "Afficher le trajet sur la carte",
+    merge_trunk: "Verrouillage unique (portes et coffre)",
+    charge_times: "Temps de charge",
+    charge_times_note: "Estimations de la voiture, de {soc} % jusqu'à la charge complète.",
+    no_charge_times: "La voiture ne donne pas encore d'estimation de temps de charge.",
+    car_l1: "Prise domestique",
+    car_l2: "Borne",
+    car_l3: "Borne rapide",
+    close: "Fermer",
     show_range: "Afficher la barre de batterie et d'autonomie",
     show_image: "Afficher l'image du véhicule",
     show_map: "Afficher la mini-carte",
     show_buttons: "Afficher les boutons d'infos rapides",
-    show_actions: "Afficher les boutons d'action",
+    show_actions: "Commandes sur les tuiles",
     select_vehicle: "Choisissez un véhicule dans l'éditeur de la carte.",
     vehicle_not_found: "Véhicule pas encore trouvé. Réessayez dans quelques secondes.",
     no_tracker: "Aucune entité de localisation du véhicule",
@@ -125,11 +165,11 @@ const STRINGS = {
     unlock_doors: "Déverrouiller",
     lock_trunk: "Verrouiller le coffre",
     unlock_trunk: "Déverrouiller le coffre",
-    precondition: "Préconditionnement",
+    precondition: "Climatisation",
     hvac: "Climatisation",
     engine: "Démarrage à distance",
     charge_now: "Charger maintenant",
-    lights: "Feux",
+    lights: "Clignotants",
     lights_horn: "Feux et klaxon",
     refresh_location: "Localiser",
     update: "Actualiser",
@@ -137,6 +177,28 @@ const STRINGS = {
     confirm_unlock_trunk: "Déverrouiller le coffre ?",
     confirm_engine: "Démarrer le moteur à distance ?",
     action_failed: "La commande a échoué : {error}",
+    tile_charging: "En charge",
+    tile_waiting: "En attente",
+    tile_unplugged: "Débranchée",
+    tile_locked: "Verrouillée",
+    tile_unlocked: "Déverrouillée",
+    tile_trunk_locked: "Coffre verrouillé",
+    tile_trunk_unlocked: "Coffre déverrouillé",
+    tile_liftgate_locked: "Hayon verrouillé",
+    tile_liftgate_unlocked: "Hayon déverrouillé",
+    tile_windows_closed: "Vitres fermées",
+    tile_windows_open: "Vitre ouverte",
+    tile_running: "En marche",
+    start: "Démarrer",
+    stop: "Arrêter",
+    refresh: "Actualiser",
+    age_now: "à l'instant",
+    age_min: "il y a {n} min",
+    age_hour: "il y a {n} h",
+    age_day: "il y a {n} j",
+    position_age: "Position {age}",
+    alert_tires: "Vérifier la pression des pneus",
+    alert_12v: "Batterie 12 V faible ({value})",
   },
 };
 
@@ -213,12 +275,6 @@ const escapeHtml = (input) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
-const iconBadge = (icon, statusClass = "", entityId = "", title = "") => `
-  <button class="indicator ${statusClass}" data-entity-id="${escapeHtml(entityId)}" title="${escapeHtml(title)}">
-    <ha-icon icon="${icon}"></ha-icon>
-  </button>
-`;
-
 const humanizeLocationState = (stateObj, hass) => {
   const rawState = stateObj?.state;
   if (rawState === undefined || rawState === null) return translate(hass, "location_unavailable");
@@ -236,10 +292,35 @@ const sanitizePlate = (raw) => {
   return raw.trim().replace(/[^\p{L}\p{N}\s-]/gu, "").substring(0, 15).toUpperCase();
 };
 
-const INDICATOR_COUNT = 5;
-
 // A press longer than this opens the entity's dialog instead of acting
 const HOLD_MS = 500;
+
+// How long a command's result stays on its tile
+const FEEDBACK_MS = { done: 2500, failed: 4000 };
+
+// How long a switch without state (preconditioning on some vehicles) is shown
+// on after the card turned it on
+const ASSUMED_ON_MS = 30 * 60 * 1000;
+
+const formatDuration = (minutes) => {
+  const m = Math.max(1, Math.round(minutes));
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`;
+};
+
+// Below this the 12 V battery gets a warning (volts)
+const LOW_12V = 11.8;
+
+// "3 min ago", "2 h ago" for an ISO timestamp state
+const formatAge = (hass, stateObj) => {
+  const time = Date.parse(stateObj?.state ?? "");
+  if (!Number.isFinite(time)) return "";
+  const minutes = Math.max(0, Math.round((Date.now() - time) / 60000));
+  if (minutes < 1) return translate(hass, "age_now");
+  if (minutes < 60) return translate(hass, "age_min", { n: minutes });
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return translate(hass, "age_hour", { n: hours });
+  return translate(hass, "age_day", { n: Math.round(hours / 24) });
+};
 
 class UconnectVehicleCard extends HTMLElement {
   setConfig(config) {
@@ -258,8 +339,8 @@ class UconnectVehicleCard extends HTMLElement {
     let size = 5;
     if (boolConfig(cfg, "show_image", true)) size += 2;
     if (boolConfig(cfg, "show_map", true)) size += 2;
-    if (boolConfig(cfg, "show_buttons", true)) size += 2;
-    if (boolConfig(cfg, "show_actions", true)) size += 1;
+    if (boolConfig(cfg, "show_buttons", false)) size += 2;
+    if (boolConfig(cfg, "show_indicators", true)) size += 2;
     return size;
   }
 
@@ -278,6 +359,8 @@ class UconnectVehicleCard extends HTMLElement {
         { name: "show_map", selector: { boolean: {} } },
         { name: "show_buttons", selector: { boolean: {} } },
         { name: "show_actions", selector: { boolean: {} } },
+        { name: "merge_trunk", selector: { boolean: {} } },
+        { name: "show_trail", selector: { boolean: {} } },
       ],
       computeLabel: (schema) =>
         STRINGS.en[schema.name] !== undefined ? translate(null, schema.name) : undefined,
@@ -290,8 +373,10 @@ class UconnectVehicleCard extends HTMLElement {
       show_range: true,
       show_image: true,
       show_map: true,
-      show_buttons: true,
+      show_buttons: false,
       show_actions: true,
+      merge_trunk: false,
+      show_trail: false,
     };
   }
 
@@ -337,46 +422,6 @@ class UconnectVehicleCard extends HTMLElement {
             border-radius: var(--ha-card-border-radius, 12px);
             background: color-mix(in srgb, var(--card-background-color) 62%, transparent);
             padding: 10px;
-          }
-
-          .indicators {
-            display: grid;
-            grid-template-columns: repeat(${INDICATOR_COUNT}, minmax(0, 1fr));
-            gap: 8px;
-          }
-          .indicator {
-            appearance: none;
-            cursor: pointer;
-            border-radius: 999px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid transparent;
-            background: color-mix(in srgb, var(--secondary-background-color, #90909040) 58%, transparent);
-            color: var(--secondary-text-color);
-            width: 100%;
-            height: 34px;
-            padding: 0;
-            transition: background 0.2s ease;
-          }
-          .indicator:hover {
-            background: color-mix(in srgb, var(--secondary-background-color, #90909040) 78%, transparent);
-          }
-          .indicator.ok {
-            color: var(--primary-color);
-            border-color: transparent;
-          }
-          .indicator.alert {
-            color: var(--error-color);
-            border-color: transparent;
-          }
-          .indicator.placeholder {
-            opacity: 0;
-            pointer-events: none;
-            cursor: default;
-          }
-          .indicator.charging {
-            animation: chargingBadgePulse 1.4s ease-in-out infinite;
           }
 
           .range-box {
@@ -542,55 +587,120 @@ class UconnectVehicleCard extends HTMLElement {
             text-overflow: ellipsis;
           }
 
-          .actions-grid {
+          .tiles {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 8px;
           }
-          .action-item {
+          .tile {
+            --tone: var(--secondary-text-color);
             appearance: none;
             cursor: pointer;
             border: 0;
-            border-radius: 10px;
-            padding: 8px 4px;
+            border-radius: 14px;
+            padding: 10px 4px 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
             min-width: 0;
-            background: color-mix(in srgb, var(--secondary-background-color, #90909040) 52%, transparent);
-            color: var(--secondary-text-color);
+            background: color-mix(in srgb, var(--tone) 16%, var(--secondary-background-color, #80808033));
+            color: var(--primary-text-color);
             font: inherit;
-            font-size: 12px;
-            line-height: 1.2;
             text-align: center;
-            transition: background 0.2s ease;
+            transition: background 0.25s ease, transform 0.1s ease;
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
           }
-          .action-item:hover {
-            background: color-mix(in srgb, var(--secondary-background-color, #90909040) 74%, transparent);
+          .tile:active { transform: scale(0.96); }
+          .tile ha-icon { color: var(--tone); --mdc-icon-size: 28px; }
+          .tile.ok { --tone: var(--success-color, #43a047); }
+          .tile.bad { --tone: var(--error-color, #db4437); }
+          .tile.warn { --tone: var(--warning-color, #ffa600); }
+          .tile.idle { --tone: var(--secondary-text-color); background: var(--secondary-background-color, #80808033); }
+          .tile.ok, .tile.bad, .tile.warn { background: color-mix(in srgb, var(--tone) 24%, transparent); }
+          .tile.live ha-icon { animation: chargingBadgePulse 1.4s ease-in-out infinite; }
+          .tile.pending { --tone: var(--warning-color, #ffa600); animation: tilePending 1s ease-in-out infinite; pointer-events: none; }
+          .tile.done { --tone: var(--success-color, #43a047); background: color-mix(in srgb, var(--tone) 40%, transparent); }
+          .tile.failed { --tone: var(--error-color, #db4437); background: color-mix(in srgb, var(--tone) 40%, transparent); }
+          .tile[disabled] { opacity: 0.4; cursor: default; }
+          .tile-label {
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.15;
           }
-          .action-item.on {
-            color: var(--primary-color);
+          .tile-sub {
+            font-size: 11px;
+            line-height: 1.15;
+            color: var(--secondary-text-color);
+            min-height: 1.15em;
           }
-          .action-item.pending {
-            opacity: 0.5;
-            pointer-events: none;
+          .alert-row {
+            appearance: none;
+            cursor: pointer;
+            border: 0;
+            border-radius: 12px;
+            width: 100%;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font: inherit;
+            font-size: 14px;
+            color: var(--primary-text-color);
+            background: color-mix(in srgb, var(--warning-color, #ffa600) 26%, transparent);
           }
-          .action-item[disabled] {
-            opacity: 0.4;
-            cursor: default;
+          .alert-row ha-icon { color: var(--warning-color, #ffa600); }
+          #alerts { display: grid; gap: 8px; }
+          #alerts:empty { display: none; }
+          .panel {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgb(0 0 0 / 55%);
+          }
+          .panel-box {
+            width: min(440px, 100%);
+            max-height: 90vh;
+            overflow: auto;
+            border-radius: 16px;
+            padding: 16px;
+            background: var(--card-background-color, #1c1c1c);
+            color: var(--primary-text-color);
+            box-shadow: 0 8px 32px rgb(0 0 0 / 40%);
+          }
+          .panel-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+          .panel-title span { font-size: 14px; font-weight: 400; color: var(--secondary-text-color); }
+          .panel-box table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+          .panel-box th { text-align: left; font-size: 12px; font-weight: 500; color: var(--secondary-text-color); padding: 4px 0; }
+          .panel-box td { padding: 6px 0; border-top: 1px solid var(--divider-color, #8884); }
+          .panel-box td:last-child, .panel-box th:last-child { text-align: right; white-space: nowrap; font-weight: 600; }
+          .panel-note { margin-top: 8px; font-size: 12px; color: var(--secondary-text-color); }
+          .panel-close {
+            appearance: none; border: 0; cursor: pointer; font: inherit;
+            margin-top: 14px; width: 100%; padding: 10px; border-radius: 10px;
+            background: var(--secondary-background-color, #80808033); color: var(--primary-text-color);
+          }
+          .map-age {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--secondary-text-color);
           }
 
           @media (max-width: 520px) {
             .buttons-grid {
               grid-template-columns: 1fr;
             }
-            .indicators {
-              grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
+          }
+
+          @keyframes tilePending {
+            0%, 100% { background: color-mix(in srgb, var(--tone) 14%, transparent); }
+            50% { background: color-mix(in srgb, var(--tone) 38%, transparent); }
           }
 
           @keyframes chargingBadgePulse {
@@ -622,12 +732,13 @@ class UconnectVehicleCard extends HTMLElement {
             <div class="vin" id="vin"></div>
             <main id="main-wrapper">
               <div id="indicators"></div>
+              <div id="alerts"></div>
               <div id="images"></div>
               <div id="range_info"></div>
               <div id="mini_map"></div>
               <div id="buttons"></div>
-              <div id="actions"></div>
             </main>
+            <div id="panel"></div>
           </div>
         </ha-card>
       `;
@@ -662,9 +773,9 @@ class UconnectVehicleCard extends HTMLElement {
   _bindInteractions() {
     if (!this.shadowRoot || this._interactionsBound) return;
     this._interactionsBound = true;
-    // A tap on an action button runs its command, a long press opens the
-    // entity's dialog (history, attributes), like Home Assistant's button card.
-    // The other elements open the dialog either way.
+    // A tap on a tile runs its command, a long press opens the entity's
+    // dialog (history, attributes), like Home Assistant's button card.
+    // Elements without a command open the dialog either way.
     const root = this.shadowRoot;
     const entityTarget = (event) => {
       const node = event.target;
@@ -689,6 +800,11 @@ class UconnectVehicleCard extends HTMLElement {
       if (entityTarget(event)) event.preventDefault();
     });
     root.addEventListener("click", (event) => {
+      if (event.target instanceof Element && event.target.closest("[data-close-panel]")) {
+        if (event.target.closest(".panel-box") && !event.target.closest("button[data-close-panel]")) return;
+        this._openPanel(null);
+        return;
+      }
       const target = entityTarget(event);
       if (!target) return;
       if (this._held) {
@@ -697,8 +813,10 @@ class UconnectVehicleCard extends HTMLElement {
       }
       const entityId = target.getAttribute("data-entity-id");
       if (!entityId) return;
-      const action = target.getAttribute("data-action");
-      if (action) this._runAction(target, action, entityId);
+      const steps = target.getAttribute("data-steps");
+      const panel = target.getAttribute("data-panel");
+      if (steps) this._runSteps(target, entityId, JSON.parse(steps));
+      else if (panel) this._openPanel(panel);
       else this._openMoreInfo(entityId);
     });
   }
@@ -707,21 +825,64 @@ class UconnectVehicleCard extends HTMLElement {
     this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: kind }));
   }
 
-  async _runAction(button, action, entityId) {
+  _openPanel(name) {
+    this._panel = name;
+    this._render();
+  }
+
+  _renderChargePanel(hass, socValue, read) {
+    // The vehicle's own estimates: the integration can't tell the battery
+    // capacity or the charging power limits of a vehicle
+    const rows = [["car_l1", "time_to_charge_l1"], ["car_l2", "time_to_charge_l2"], ["car_l3", "time_to_charge_l3"]]
+      .map(([label, key]) => [label, toNumberOrZero(read(key))])
+      .filter(([, minutes]) => minutes > 0)
+      .map(([label, minutes]) => `<tr><td>${escapeHtml(translate(hass, label))}</td><td>${formatDuration(minutes)}</td></tr>`)
+      .join("");
+    return `
+      <div class="panel" data-close-panel>
+        <div class="panel-box">
+          <div class="panel-title">${escapeHtml(translate(hass, "charge_times"))}</div>
+          ${rows
+            ? `<table>${rows}</table>
+               <div class="panel-note">${escapeHtml(translate(hass, "charge_times_note", { soc: Math.round(socValue) }))}</div>`
+            : `<div class="panel-note">${escapeHtml(translate(hass, "no_charge_times"))}</div>`}
+          <button class="panel-close" data-close-panel>${escapeHtml(translate(hass, "close"))}</button>
+        </div>
+      </div>`;
+  }
+
+  _setFeedback(entityId, state) {
+    this._feedback = this._feedback || {};
+    const duration = FEEDBACK_MS[state];
+    this._feedback[entityId] = { state, until: duration ? Date.now() + duration : Infinity };
+    this._render();
+    if (duration) setTimeout(() => this._render(), duration + 50);
+  }
+
+  async _runSteps(button, entityId, steps) {
     const hass = this._hass;
-    if (!hass || button.classList.contains("pending")) return;
+    if (!hass || this._feedback?.[entityId]?.state === "pending") return;
     const confirmKey = button.getAttribute("data-confirm");
     if (confirmKey && !window.confirm(translate(hass, confirmKey))) return;
-    const [domain, service] = action.split(".");
+    const assume = button.getAttribute("data-assume");
     this._haptic("light");
-    button.classList.add("pending");
+    this._setFeedback(entityId, "pending");
     try {
-      await hass.callService(domain, service, { entity_id: entityId });
+      // One after the other: the vehicle takes one remote command at a time
+      for (const { action, entity } of steps) {
+        const [domain, service] = action.split(".");
+        await hass.callService(domain, service, { entity_id: entity });
+      }
+      if (assume) {
+        this._assumed = this._assumed || {};
+        this._assumed[entityId] = { until: assume === "on" ? Date.now() + ASSUMED_ON_MS : 0 };
+      }
+      this._haptic("success");
+      this._setFeedback(entityId, "done");
     } catch (err) {
       this._haptic("failure");
-      window.alert(translate(hass, "action_failed", { error: err?.message || String(err) }));
-    } finally {
-      button.classList.remove("pending");
+      this._setFeedback(entityId, "failed");
+      button.title = translate(hass, "action_failed", { error: err?.message || String(err) });
     }
   }
 
@@ -736,7 +897,7 @@ class UconnectVehicleCard extends HTMLElement {
     );
   }
 
-  async _createMapCard(hass, trackerEntityId) {
+  async _createMapCard(hass, trackerEntityId, trail) {
     try {
       if (!window.loadCardHelpers) return null;
       const helpers = await window.loadCardHelpers();
@@ -745,7 +906,8 @@ class UconnectVehicleCard extends HTMLElement {
         type: "map",
         entities: [trackerEntityId],
         default_zoom: 14,
-        hours_to_show: 24,
+        // The trip trail draws a line to the car, off unless asked for
+        hours_to_show: trail ? 24 : 0,
         aspect_ratio: "16:6",
       });
       mapCard.hass = hass;
@@ -755,7 +917,8 @@ class UconnectVehicleCard extends HTMLElement {
     }
   }
 
-  _renderMap(target, hass, trackerEntityId) {
+  _renderMap(target, hass, trackerEntityId, trail = false, age = "") {
+    const mapKey = `${trackerEntityId}|${trail}`;
     if (!target) return;
 
     if (!trackerEntityId) {
@@ -780,8 +943,9 @@ class UconnectVehicleCard extends HTMLElement {
       return;
     }
 
-    if (this._cachedMapCard && this._cachedMapTracker === trackerEntityId) {
+    if (this._cachedMapCard && this._cachedMapTracker === mapKey) {
       this._cachedMapCard.hass = hass;
+      if (this._mapAgeEl) this._mapAgeEl.textContent = age ? translate(hass, "position_age", { age }) : "";
       return;
     }
 
@@ -797,9 +961,13 @@ class UconnectVehicleCard extends HTMLElement {
     mapMount.className = "map-mount";
     mapMount.innerHTML = `<div class="map-fallback">${escapeHtml(translate(hass, "loading_map"))}</div>`;
     wrapper.appendChild(mapMount);
-    target.replaceChildren(wrapper);
+    const ageEl = document.createElement("div");
+    ageEl.className = "map-age";
+    ageEl.textContent = age ? translate(hass, "position_age", { age }) : "";
+    this._mapAgeEl = ageEl;
+    target.replaceChildren(wrapper, ageEl);
 
-    this._createMapCard(hass, trackerEntityId).then((mapCard) => {
+    this._createMapCard(hass, trackerEntityId, trail).then((mapCard) => {
       if (!target.isConnected) return;
       if (this._mapRenderToken !== renderToken) return;
       if (!mapCard) {
@@ -807,7 +975,7 @@ class UconnectVehicleCard extends HTMLElement {
         return;
       }
       this._cachedMapCard = mapCard;
-      this._cachedMapTracker = trackerEntityId;
+      this._cachedMapTracker = mapKey;
       mapMount.replaceChildren(mapCard);
     });
   }
@@ -842,7 +1010,7 @@ class UconnectVehicleCard extends HTMLElement {
     const imageEl = this.shadowRoot.getElementById("images");
     const mapEl = this.shadowRoot.getElementById("mini_map");
     const buttonsEl = this.shadowRoot.getElementById("buttons");
-    const actionsEl = this.shadowRoot.getElementById("actions");
+    const alertsEl = this.shadowRoot.getElementById("alerts");
 
     const vin = vehicle.vin || "";
     const name = vehicle.name || vin || "Uconnect";
@@ -851,14 +1019,15 @@ class UconnectVehicleCard extends HTMLElement {
     const read = (key) => hass?.states?.[entities[key]];
 
     nameEl.textContent = name;
-    vinEl.textContent = cfg.license_plate || vin;
+    const odometerText = hasUsableState(read("odometer")) ? formatState(read("odometer"), hass) : "";
+    vinEl.textContent = [cfg.license_plate || vin, odometerText].filter(Boolean).join(" \u00b7 ");
+    const dataAge = formatAge(hass, read("timestamp_status"));
 
     const showIndicators = boolConfig(cfg, "show_indicators", true);
     const showRange = boolConfig(cfg, "show_range", true);
     const showImage = boolConfig(cfg, "show_image", true);
     const showMap = boolConfig(cfg, "show_map", true);
-    const showButtons = boolConfig(cfg, "show_buttons", true);
-    const showActions = boolConfig(cfg, "show_actions", true);
+    const showButtons = boolConfig(cfg, "show_buttons", false);
 
     // Uconnect binary sensors use postprocess inversion:
     //   off = locked/closed (secure), on = unlocked/open (not secure)
@@ -908,50 +1077,170 @@ class UconnectVehicleCard extends HTMLElement {
     const rangeText = rangeState ? formatState(rangeState, hass) : "\u2014";
     const rangeIcon = hasSoc ? "mdi:arrow-left-right" : "mdi:gas-station";
 
-    // Indicators
+    // Status and command tiles: green when secure or running, red when it
+    // needs attention, orange for a warning. A tap runs the tile's command,
+    // a long press opens the entity's dialog.
     if (showIndicators) {
-      const indicatorItems = [
-        {
-          icon: "mdi:car-door-lock",
-          stateClass: allDoorsLocked ? "ok" : "alert",
-          entity: anyDoorEntity,
-          title: translate(hass, allDoorsLocked ? "doors_locked" : "doors_unlocked"),
-        },
-        {
-          icon: allWindowsClosed ? "mdi:car-windshield" : "mdi:car-windshield-outline",
-          stateClass: allWindowsClosed ? "ok" : openWindows > 0 ? "alert" : "",
-          entity: windowEntity,
-          title: allWindowsClosed ? translate(hass, "windows_closed") : translate(hass, "windows_open", { count: openWindows }),
-        },
-        {
-          icon: "mdi:lock",
-          stateClass: trunkLocked ? "ok" : hasUsableState(read(trunkKey)) ? "alert" : "",
-          entity: trunkEntity,
-          title: translate(hass, `${trunkKey}_${trunkLocked ? "locked" : "unlocked"}`),
-        },
-        {
-          icon: "mdi:ev-station",
-          stateClass: chargingActive ? "ok charging" : pluggedIn ? "ok" : "",
-          entity: chargingEntity,
-          title: translate(hass, chargingActive ? "charging" : pluggedIn ? "plugged_in" : "not_plugged_in"),
-        },
-        {
-          icon: "mdi:engine",
-          stateClass: ignitionOn ? "ok" : "",
-          entity: ignitionEntity,
-          title: translate(hass, ignitionOn ? "ignition_on" : "ignition_off"),
-        },
-      ];
+      const commands = boolConfig(cfg, "show_actions", true);
+      const has = (key) => Boolean(entities[key]);
+      const step = (action, key) => ({ action, entity: entities[key] });
+      const tiles = [];
 
-      this._setHtml(indicatorsEl, `
-        <div class="box indicators">
-          ${indicatorItems.map((item) => iconBadge(item.icon, item.stateClass, item.entity, item.title)).join("")}
+      // Charge: unplugged, plugged in but waiting (a tap starts it), charging
+      if (entities.plugged_in || entities.charging) {
+        const socText = hasSoc ? `${Math.round(socValue)} %` : "";
+        if (chargingActive) {
+          const rate = toNumberOrZero(read("charging_rate"));
+          tiles.push({
+            entity: chargingEntity, tone: "ok live", icon: "mdi:ev-station",
+            label: translate(hass, "tile_charging"), panel: "charge",
+            sub: [socText, rate > 0 ? formatState(read("charging_rate"), hass) : ""].filter(Boolean).join(" · "),
+          });
+        } else if (pluggedIn) {
+          const canCharge = commands && has("charge_now");
+          tiles.push({
+            entity: chargingEntity, tone: "bad", icon: "mdi:ev-station",
+            label: translate(hass, "tile_waiting"),
+            sub: canCharge ? translate(hass, "charge_now") : socText,
+            steps: canCharge ? [step("button.press", "charge_now")] : null,
+          });
+        } else {
+          tiles.push({
+            entity: chargingEntity, tone: "idle", icon: "mdi:power-plug-off-outline",
+            label: translate(hass, "tile_unplugged"), sub: socText, panel: "charge",
+          });
+        }
+      }
+
+      // Doors, and the trunk with them when the card merges the two
+      const doorsKnown = has("lock_doors") ? hasUsableState(read("lock_doors")) : doorStates.length > 0;
+      const doorsLocked = has("lock_doors") ? read("lock_doors")?.state === "locked" : allDoorsLocked;
+      const trunkKnown = has("trunk_lock") ? hasUsableState(read("trunk_lock")) : hasUsableState(read(trunkKey));
+      const trunkIsLocked = has("trunk_lock") ? isOnState(read("trunk_lock")) : trunkLocked;
+      const canLockDoors = commands && has("lock_doors");
+      const canLockTrunk = commands && has("trunk_lock");
+      const mergeTrunk = boolConfig(cfg, "merge_trunk", false) && trunkKnown;
+
+      if (doorsKnown) {
+        const locked = doorsLocked && (!mergeTrunk || trunkIsLocked);
+        const steps = [];
+        if (locked) {
+          if (canLockDoors) steps.push(step("lock.unlock", "lock_doors"));
+          if (mergeTrunk && canLockTrunk) steps.push(step("switch.turn_off", "trunk_lock"));
+        } else {
+          if (canLockDoors && !doorsLocked) steps.push(step("lock.lock", "lock_doors"));
+          if (mergeTrunk && canLockTrunk && !trunkIsLocked) steps.push(step("switch.turn_on", "trunk_lock"));
+        }
+        tiles.push({
+          entity: entities.lock_doors || anyDoorEntity,
+          tone: locked ? "ok" : "bad",
+          icon: locked ? "mdi:lock" : "mdi:lock-open-variant",
+          label: translate(hass, locked ? "tile_locked" : "tile_unlocked"),
+          sub: steps.length ? translate(hass, locked ? "unlock_doors" : "lock_doors") : "",
+          steps: steps.length ? steps : null,
+          confirm: locked ? "confirm_unlock_doors" : "",
+        });
+      }
+
+      if (trunkKnown && !mergeTrunk) {
+        tiles.push({
+          entity: entities.trunk_lock || trunkEntity,
+          tone: trunkIsLocked ? "ok" : "bad",
+          icon: trunkIsLocked ? "mdi:car-back" : "mdi:car-back",
+          label: translate(hass, `tile_${trunkKey}_${trunkIsLocked ? "locked" : "unlocked"}`),
+          sub: canLockTrunk ? translate(hass, trunkIsLocked ? "unlock_doors" : "lock_doors") : "",
+          steps: canLockTrunk ? [step(trunkIsLocked ? "switch.turn_off" : "switch.turn_on", "trunk_lock")] : null,
+          confirm: trunkIsLocked ? "confirm_unlock_trunk" : "",
+        });
+      }
+
+      if (windowStates.length > 0) {
+        tiles.push({
+          entity: windowEntity,
+          tone: allWindowsClosed ? "ok" : "warn",
+          icon: allWindowsClosed ? "mdi:car-door" : "mdi:window-open-variant",
+          label: translate(hass, allWindowsClosed ? "tile_windows_closed" : "tile_windows_open"),
+          sub: allWindowsClosed ? "" : String(openWindows),
+        });
+      }
+
+      // Switches. Preconditioning reports no state on some vehicles: the card
+      // then shows what it last asked, for as long as the car keeps it on.
+      const switchTile = (key, icon, labelKey, confirmOn = "") => {
+        if (!commands || !has(key)) return;
+        const known = hasUsableState(read(key));
+        const assumed = this._assumed?.[entities[key]];
+        const on = known ? isOnState(read(key)) : Boolean(assumed && assumed.until > Date.now());
+        tiles.push({
+          entity: entities[key],
+          tone: on ? "ok live" : "idle",
+          icon,
+          label: translate(hass, labelKey),
+          sub: translate(hass, on ? "stop" : "start"),
+          steps: [step(on ? "switch.turn_off" : "switch.turn_on", key)],
+          confirm: on ? "" : confirmOn,
+          assume: known ? null : !on,
+        });
+      };
+      switchTile("precondition", "mdi:fan", "precondition");
+      switchTile("hvac", "mdi:fan", "hvac");
+      switchTile("engine", "mdi:engine", "engine", "confirm_engine");
+
+      // One-shot commands
+      const pressTile = (key, icon, labelKey, sub = "") => {
+        if (!commands || !has(key)) return;
+        tiles.push({ entity: entities[key], tone: "idle", icon, label: translate(hass, labelKey), sub, steps: [step("button.press", key)] });
+      };
+      pressTile("lights", "mdi:car-light-high", "lights");
+      pressTile("lights_horn", "mdi:bullhorn", "lights_horn");
+      pressTile("refresh_location", "mdi:crosshairs-gps", "refresh_location");
+      // Refresh wakes the car up so it sends fresh data; reading the cloud
+      // again is what the integration's polling already does
+      pressTile(has("deep_refresh") ? "deep_refresh" : "update", "mdi:refresh", "refresh", dataAge);
+
+      const feedback = this._feedback || {};
+      this._setHtml(indicatorsEl, tiles.length === 0 ? "" : `
+        <div class="tiles">
+          ${tiles
+            .map((tile) => {
+              const fb = feedback[tile.entity]?.until > Date.now() ? feedback[tile.entity].state : "";
+              const icon = fb === "done" ? "mdi:check-bold" : fb === "failed" ? "mdi:close-thick" : tile.icon;
+              return `
+            <button class="tile ${tile.tone}${fb ? ` ${fb}` : ""}"${tile.entity && hass.states[tile.entity]?.state === "unavailable" && tile.steps ? " disabled" : ""}
+              data-entity-id="${escapeHtml(tile.entity)}"
+              data-steps="${escapeHtml(tile.steps ? JSON.stringify(tile.steps) : "")}"
+              data-panel="${escapeHtml(tile.panel || "")}"
+              data-confirm="${escapeHtml(tile.confirm || "")}"
+              data-assume="${tile.assume === null || tile.assume === undefined ? "" : tile.assume ? "on" : "off"}"
+              title="${escapeHtml(tile.entity)}">
+              <ha-icon icon="${icon}"></ha-icon>
+              <span class="tile-label">${escapeHtml(tile.label)}</span>
+              <span class="tile-sub">${escapeHtml(tile.sub || "")}</span>
+            </button>`;
+            })
+            .join("")}
         </div>
       `);
     } else {
       this._setHtml(indicatorsEl, "");
     }
 
+    this._setHtml(this.shadowRoot.getElementById("panel"),
+      this._panel === "charge" ? this._renderChargePanel(hass, socValue, read) : "");
+
+    // Warnings that only show up when something is wrong
+    {
+      const alerts = [];
+      const tireWarn = ["tire_fl_warn", "tire_fr_warn", "tire_rl_warn", "tire_rr_warn"].find((key) => isOnState(read(key)));
+      if (tireWarn) alerts.push({ entity: entities[tireWarn], icon: "mdi:car-tire-alert", text: translate(hass, "alert_tires") });
+      const volts = toNumberOrZero(read("battery_voltage"));
+      if (volts > 0 && volts < LOW_12V) {
+        alerts.push({ entity: entities.battery_voltage, icon: "mdi:car-battery", text: translate(hass, "alert_12v", { value: formatState(read("battery_voltage"), hass) }) });
+      }
+      this._setHtml(alertsEl, alerts
+        .map((a) => `<button class="alert-row" data-entity-id="${escapeHtml(a.entity)}"><ha-icon icon="${a.icon}"></ha-icon><span>${escapeHtml(a.text)}</span></button>`)
+        .join(""));
+    }
     // Range / SOC bar
     if (showRange && (primaryLevelHasBar || rangeState)) {
       if (primaryLevelHasBar) {
@@ -990,7 +1279,7 @@ class UconnectVehicleCard extends HTMLElement {
       const imgState = hass.states[entities.image];
       const pic = imgState?.attributes?.entity_picture;
       this._setHtml(imageEl, pic
-        ? `<div class="image ${chargingActive ? "charging" : ""}" data-entity-id="${escapeHtml(entities.image)}" title="${escapeHtml(entities.image)}"><img alt="${escapeHtml(vin)}" src="${escapeHtml(pic)}"></div>`
+        ? `<div class="image ${chargingActive ? "charging" : ""}"><img alt="${escapeHtml(vin)}" src="${escapeHtml(pic)}"></div>`
         : "");
     } else {
       this._setHtml(imageEl, "");
@@ -998,7 +1287,8 @@ class UconnectVehicleCard extends HTMLElement {
 
     // Mini map
     if (showMap) {
-      this._renderMap(mapEl, hass, entities.device_tracker);
+      this._renderMap(mapEl, hass, entities.device_tracker, boolConfig(cfg, "show_trail", false),
+        formatAge(hass, read("last_location")));
     } else {
       this._setHtml(mapEl, "");
     }
@@ -1119,78 +1409,6 @@ class UconnectVehicleCard extends HTMLElement {
       this._setHtml(buttonsEl, "");
     }
 
-    // Action buttons, for the command entities the integration created
-    if (showActions) {
-      const unavailable = (key) => {
-        const state = read(key)?.state;
-        return state === undefined || state === "unavailable";
-      };
-      const lockState = read("lock_doors")?.state;
-      const doorsLocked = lockState === "locked";
-      const trunkLockedSwitch = isOnState(read("trunk_lock"));
-      const actionItems = [
-        {
-          key: "lock_doors",
-          icon: doorsLocked ? "mdi:lock-open-variant" : "mdi:lock",
-          label: translate(hass, doorsLocked ? "unlock_doors" : "lock_doors"),
-          action: doorsLocked ? "lock.unlock" : "lock.lock",
-          confirm: doorsLocked ? "confirm_unlock_doors" : "",
-        },
-        {
-          key: "trunk_lock",
-          icon: trunkLockedSwitch ? "mdi:lock-open-variant-outline" : "mdi:lock-outline",
-          label: translate(hass, trunkLockedSwitch ? "unlock_trunk" : "lock_trunk"),
-          action: trunkLockedSwitch ? "switch.turn_off" : "switch.turn_on",
-          confirm: trunkLockedSwitch ? "confirm_unlock_trunk" : "",
-        },
-        {
-          key: "precondition",
-          icon: "mdi:air-conditioner",
-          label: translate(hass, "precondition"),
-          action: "switch.toggle",
-          on: isOnState(read("precondition")),
-        },
-        {
-          key: "hvac",
-          icon: "mdi:fan",
-          label: translate(hass, "hvac"),
-          action: "switch.toggle",
-          on: isOnState(read("hvac")),
-        },
-        {
-          key: "engine",
-          icon: "mdi:engine",
-          label: translate(hass, "engine"),
-          action: "switch.toggle",
-          on: isOnState(read("engine")),
-          confirm: isOnState(read("engine")) ? "" : "confirm_engine",
-        },
-        { key: "charge_now", icon: "mdi:ev-plug-type2", label: translate(hass, "charge_now"), action: "button.press" },
-        { key: "lights", icon: "mdi:car-light-high", label: translate(hass, "lights"), action: "button.press" },
-        { key: "lights_horn", icon: "mdi:bullhorn", label: translate(hass, "lights_horn"), action: "button.press" },
-        { key: "refresh_location", icon: "mdi:crosshairs-gps", label: translate(hass, "refresh_location"), action: "button.press" },
-        { key: "update", icon: "mdi:refresh", label: translate(hass, "update"), action: "button.press" },
-      ].filter((item) => entities[item.key]);
-
-      this._setHtml(actionsEl, actionItems.length === 0 ? "" : `
-        <div class="box actions-grid">
-          ${actionItems
-            .map(
-              (item) => `
-            <button class="action-item${item.on ? " on" : ""}"${unavailable(item.key) ? " disabled" : ""}
-              data-entity-id="${escapeHtml(entities[item.key])}" data-action="${escapeHtml(item.action)}"
-              data-confirm="${escapeHtml(item.confirm || "")}" title="${escapeHtml(entities[item.key])}">
-              <ha-icon icon="${item.icon}"></ha-icon>
-              <span>${escapeHtml(item.label)}</span>
-            </button>
-          `
-            )
-            .join("")}
-        </div>
-      `);
-    } else {
-      this._setHtml(actionsEl, "");
-    }
   }
 
   _renderMessage(message) {
@@ -1203,7 +1421,7 @@ class UconnectVehicleCard extends HTMLElement {
     const imageEl = this.shadowRoot.getElementById("images");
     const mapEl = this.shadowRoot.getElementById("mini_map");
     const buttonsEl = this.shadowRoot.getElementById("buttons");
-    const actionsEl = this.shadowRoot.getElementById("actions");
+    const alertsEl = this.shadowRoot.getElementById("alerts");
 
     nameEl.textContent = "Uconnect";
     vinEl.textContent = message;
@@ -1212,7 +1430,7 @@ class UconnectVehicleCard extends HTMLElement {
     this._setHtml(imageEl, "");
     this._setHtml(mapEl, "");
     this._setHtml(buttonsEl, "");
-    this._setHtml(actionsEl, "");
+    this._setHtml(alertsEl, "");
   }
 }
 
