@@ -20,6 +20,7 @@ const STRINGS = {
     show_image: "Show vehicle image",
     show_map: "Show mini map",
     show_buttons: "Show quick info buttons",
+    show_actions: "Show action buttons",
     select_vehicle: "Select a vehicle in the card editor.",
     vehicle_not_found: "Vehicle not found yet. Try again in a few seconds.",
     no_tracker: "No vehicle tracker entity available",
@@ -56,6 +57,22 @@ const STRINGS = {
     fuel_range: "Fuel Range",
     battery_12v: "12V Battery",
     odometer: "Odometer",
+    lock_doors: "Lock",
+    unlock_doors: "Unlock",
+    lock_trunk: "Lock trunk",
+    unlock_trunk: "Unlock trunk",
+    precondition: "Precondition",
+    hvac: "Climate",
+    engine: "Remote start",
+    charge_now: "Charge now",
+    lights: "Lights",
+    lights_horn: "Lights and horn",
+    refresh_location: "Locate",
+    update: "Update",
+    confirm_unlock_doors: "Unlock the doors?",
+    confirm_unlock_trunk: "Unlock the trunk?",
+    confirm_engine: "Start the engine remotely?",
+    action_failed: "The command failed: {error}",
   },
   fr: {
     card_name: "Véhicule Uconnect",
@@ -67,6 +84,7 @@ const STRINGS = {
     show_image: "Afficher l'image du véhicule",
     show_map: "Afficher la mini-carte",
     show_buttons: "Afficher les boutons d'infos rapides",
+    show_actions: "Afficher les boutons d'action",
     select_vehicle: "Choisissez un véhicule dans l'éditeur de la carte.",
     vehicle_not_found: "Véhicule pas encore trouvé. Réessayez dans quelques secondes.",
     no_tracker: "Aucune entité de localisation du véhicule",
@@ -103,6 +121,22 @@ const STRINGS = {
     fuel_range: "Autonomie carburant",
     battery_12v: "Batterie 12 V",
     odometer: "Kilométrage",
+    lock_doors: "Verrouiller",
+    unlock_doors: "Déverrouiller",
+    lock_trunk: "Verrouiller le coffre",
+    unlock_trunk: "Déverrouiller le coffre",
+    precondition: "Préconditionnement",
+    hvac: "Climatisation",
+    engine: "Démarrage à distance",
+    charge_now: "Charger maintenant",
+    lights: "Feux",
+    lights_horn: "Feux et klaxon",
+    refresh_location: "Localiser",
+    update: "Actualiser",
+    confirm_unlock_doors: "Déverrouiller les portes ?",
+    confirm_unlock_trunk: "Déverrouiller le coffre ?",
+    confirm_engine: "Démarrer le moteur à distance ?",
+    action_failed: "La commande a échoué : {error}",
   },
 };
 
@@ -204,6 +238,9 @@ const sanitizePlate = (raw) => {
 
 const INDICATOR_COUNT = 5;
 
+// A press longer than this opens the entity's dialog instead of acting
+const HOLD_MS = 500;
+
 class UconnectVehicleCard extends HTMLElement {
   setConfig(config) {
     const cfg = config || {};
@@ -222,6 +259,7 @@ class UconnectVehicleCard extends HTMLElement {
     if (boolConfig(cfg, "show_image", true)) size += 2;
     if (boolConfig(cfg, "show_map", true)) size += 2;
     if (boolConfig(cfg, "show_buttons", true)) size += 2;
+    if (boolConfig(cfg, "show_actions", true)) size += 1;
     return size;
   }
 
@@ -239,6 +277,7 @@ class UconnectVehicleCard extends HTMLElement {
         { name: "show_image", selector: { boolean: {} } },
         { name: "show_map", selector: { boolean: {} } },
         { name: "show_buttons", selector: { boolean: {} } },
+        { name: "show_actions", selector: { boolean: {} } },
       ],
       computeLabel: (schema) =>
         STRINGS.en[schema.name] !== undefined ? translate(null, schema.name) : undefined,
@@ -252,6 +291,7 @@ class UconnectVehicleCard extends HTMLElement {
       show_image: true,
       show_map: true,
       show_buttons: true,
+      show_actions: true,
     };
   }
 
@@ -502,6 +542,48 @@ class UconnectVehicleCard extends HTMLElement {
             text-overflow: ellipsis;
           }
 
+          .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+            gap: 8px;
+          }
+          .action-item {
+            appearance: none;
+            cursor: pointer;
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+            background: color-mix(in srgb, var(--secondary-background-color, #90909040) 52%, transparent);
+            color: var(--secondary-text-color);
+            font: inherit;
+            font-size: 12px;
+            line-height: 1.2;
+            text-align: center;
+            transition: background 0.2s ease;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+          }
+          .action-item:hover {
+            background: color-mix(in srgb, var(--secondary-background-color, #90909040) 74%, transparent);
+          }
+          .action-item.on {
+            color: var(--primary-color);
+          }
+          .action-item.pending {
+            opacity: 0.5;
+            pointer-events: none;
+          }
+          .action-item[disabled] {
+            opacity: 0.4;
+            cursor: default;
+          }
+
           @media (max-width: 520px) {
             .buttons-grid {
               grid-template-columns: 1fr;
@@ -544,6 +626,7 @@ class UconnectVehicleCard extends HTMLElement {
               <div id="range_info"></div>
               <div id="mini_map"></div>
               <div id="buttons"></div>
+              <div id="actions"></div>
             </main>
           </div>
         </ha-card>
@@ -579,15 +662,67 @@ class UconnectVehicleCard extends HTMLElement {
   _bindInteractions() {
     if (!this.shadowRoot || this._interactionsBound) return;
     this._interactionsBound = true;
-    this.shadowRoot.addEventListener("click", (event) => {
+    // A tap on an action button runs its command, a long press opens the
+    // entity's dialog (history, attributes), like Home Assistant's button card.
+    // The other elements open the dialog either way.
+    const root = this.shadowRoot;
+    const entityTarget = (event) => {
       const node = event.target;
-      if (!(node instanceof Element)) return;
-      const target = node.closest("[data-entity-id]");
+      return node instanceof Element ? node.closest("[data-entity-id]") : null;
+    };
+    root.addEventListener("pointerdown", (event) => {
+      const target = entityTarget(event);
+      if (!target || event.button !== 0) return;
+      clearTimeout(this._holdTimer);
+      this._held = false;
+      this._holdTimer = setTimeout(() => {
+        this._held = true;
+        this._haptic("medium");
+        this._openMoreInfo(target.getAttribute("data-entity-id"));
+      }, HOLD_MS);
+    });
+    const cancelHold = () => clearTimeout(this._holdTimer);
+    root.addEventListener("pointerup", cancelHold);
+    root.addEventListener("pointercancel", cancelHold);
+    root.addEventListener("pointerleave", cancelHold, true);
+    root.addEventListener("contextmenu", (event) => {
+      if (entityTarget(event)) event.preventDefault();
+    });
+    root.addEventListener("click", (event) => {
+      const target = entityTarget(event);
       if (!target) return;
+      if (this._held) {
+        this._held = false;
+        return;
+      }
       const entityId = target.getAttribute("data-entity-id");
       if (!entityId) return;
-      this._openMoreInfo(entityId);
+      const action = target.getAttribute("data-action");
+      if (action) this._runAction(target, action, entityId);
+      else this._openMoreInfo(entityId);
     });
+  }
+
+  _haptic(kind) {
+    this.dispatchEvent(new CustomEvent("haptic", { bubbles: true, composed: true, detail: kind }));
+  }
+
+  async _runAction(button, action, entityId) {
+    const hass = this._hass;
+    if (!hass || button.classList.contains("pending")) return;
+    const confirmKey = button.getAttribute("data-confirm");
+    if (confirmKey && !window.confirm(translate(hass, confirmKey))) return;
+    const [domain, service] = action.split(".");
+    this._haptic("light");
+    button.classList.add("pending");
+    try {
+      await hass.callService(domain, service, { entity_id: entityId });
+    } catch (err) {
+      this._haptic("failure");
+      window.alert(translate(hass, "action_failed", { error: err?.message || String(err) }));
+    } finally {
+      button.classList.remove("pending");
+    }
   }
 
   _openMoreInfo(entityId) {
@@ -707,6 +842,7 @@ class UconnectVehicleCard extends HTMLElement {
     const imageEl = this.shadowRoot.getElementById("images");
     const mapEl = this.shadowRoot.getElementById("mini_map");
     const buttonsEl = this.shadowRoot.getElementById("buttons");
+    const actionsEl = this.shadowRoot.getElementById("actions");
 
     const vin = vehicle.vin || "";
     const name = vehicle.name || vin || "Uconnect";
@@ -722,6 +858,7 @@ class UconnectVehicleCard extends HTMLElement {
     const showImage = boolConfig(cfg, "show_image", true);
     const showMap = boolConfig(cfg, "show_map", true);
     const showButtons = boolConfig(cfg, "show_buttons", true);
+    const showActions = boolConfig(cfg, "show_actions", true);
 
     // Uconnect binary sensors use postprocess inversion:
     //   off = locked/closed (secure), on = unlocked/open (not secure)
@@ -981,6 +1118,79 @@ class UconnectVehicleCard extends HTMLElement {
     } else {
       this._setHtml(buttonsEl, "");
     }
+
+    // Action buttons, for the command entities the integration created
+    if (showActions) {
+      const unavailable = (key) => {
+        const state = read(key)?.state;
+        return state === undefined || state === "unavailable";
+      };
+      const lockState = read("lock_doors")?.state;
+      const doorsLocked = lockState === "locked";
+      const trunkLockedSwitch = isOnState(read("trunk_lock"));
+      const actionItems = [
+        {
+          key: "lock_doors",
+          icon: doorsLocked ? "mdi:lock-open-variant" : "mdi:lock",
+          label: translate(hass, doorsLocked ? "unlock_doors" : "lock_doors"),
+          action: doorsLocked ? "lock.unlock" : "lock.lock",
+          confirm: doorsLocked ? "confirm_unlock_doors" : "",
+        },
+        {
+          key: "trunk_lock",
+          icon: trunkLockedSwitch ? "mdi:lock-open-variant-outline" : "mdi:lock-outline",
+          label: translate(hass, trunkLockedSwitch ? "unlock_trunk" : "lock_trunk"),
+          action: trunkLockedSwitch ? "switch.turn_off" : "switch.turn_on",
+          confirm: trunkLockedSwitch ? "confirm_unlock_trunk" : "",
+        },
+        {
+          key: "precondition",
+          icon: "mdi:air-conditioner",
+          label: translate(hass, "precondition"),
+          action: "switch.toggle",
+          on: isOnState(read("precondition")),
+        },
+        {
+          key: "hvac",
+          icon: "mdi:fan",
+          label: translate(hass, "hvac"),
+          action: "switch.toggle",
+          on: isOnState(read("hvac")),
+        },
+        {
+          key: "engine",
+          icon: "mdi:engine",
+          label: translate(hass, "engine"),
+          action: "switch.toggle",
+          on: isOnState(read("engine")),
+          confirm: isOnState(read("engine")) ? "" : "confirm_engine",
+        },
+        { key: "charge_now", icon: "mdi:ev-plug-type2", label: translate(hass, "charge_now"), action: "button.press" },
+        { key: "lights", icon: "mdi:car-light-high", label: translate(hass, "lights"), action: "button.press" },
+        { key: "lights_horn", icon: "mdi:bullhorn", label: translate(hass, "lights_horn"), action: "button.press" },
+        { key: "refresh_location", icon: "mdi:crosshairs-gps", label: translate(hass, "refresh_location"), action: "button.press" },
+        { key: "update", icon: "mdi:refresh", label: translate(hass, "update"), action: "button.press" },
+      ].filter((item) => entities[item.key]);
+
+      this._setHtml(actionsEl, actionItems.length === 0 ? "" : `
+        <div class="box actions-grid">
+          ${actionItems
+            .map(
+              (item) => `
+            <button class="action-item${item.on ? " on" : ""}"${unavailable(item.key) ? " disabled" : ""}
+              data-entity-id="${escapeHtml(entities[item.key])}" data-action="${escapeHtml(item.action)}"
+              data-confirm="${escapeHtml(item.confirm || "")}" title="${escapeHtml(entities[item.key])}">
+              <ha-icon icon="${item.icon}"></ha-icon>
+              <span>${escapeHtml(item.label)}</span>
+            </button>
+          `
+            )
+            .join("")}
+        </div>
+      `);
+    } else {
+      this._setHtml(actionsEl, "");
+    }
   }
 
   _renderMessage(message) {
@@ -993,6 +1203,7 @@ class UconnectVehicleCard extends HTMLElement {
     const imageEl = this.shadowRoot.getElementById("images");
     const mapEl = this.shadowRoot.getElementById("mini_map");
     const buttonsEl = this.shadowRoot.getElementById("buttons");
+    const actionsEl = this.shadowRoot.getElementById("actions");
 
     nameEl.textContent = "Uconnect";
     vinEl.textContent = message;
@@ -1001,6 +1212,7 @@ class UconnectVehicleCard extends HTMLElement {
     this._setHtml(imageEl, "");
     this._setHtml(mapEl, "");
     this._setHtml(buttonsEl, "");
+    this._setHtml(actionsEl, "");
   }
 }
 

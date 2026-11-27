@@ -131,6 +131,7 @@ The integration includes a custom Lovelace card (`custom:uconnect-vehicle-card`)
 - **Vehicle image**: From the image entity (if available)
 - **Mini map**: Live location from the device tracker
 - **Quick info**: Location, range, charging state, tire pressure, 12V battery, odometer
+- **Actions**: Lock/unlock, trunk, preconditioning, climate, remote start, charge now, lights, lights and horn, locate, update, for the command entities your vehicle has (they need the "add command entities" option). A tap runs the command, a long press opens the entity's dialog. Unlocking and remote start ask for confirmation first.
 
 To add the card: Edit a dashboard, add a card, search for "Uconnect Vehicle", and select your vehicle.
 
@@ -141,7 +142,7 @@ With dashboards in YAML mode, where resources can't be added by integrations, th
 Card configuration options (all toggleable):
 - `device_id` (required): Select your vehicle
 - `license_plate`: Display a license plate instead of VIN
-- `show_indicators`, `show_range`, `show_image`, `show_map`, `show_buttons`: Toggle sections
+- `show_indicators`, `show_range`, `show_image`, `show_map`, `show_buttons`, `show_actions`: Toggle sections
 
 ## Useful Resources
 

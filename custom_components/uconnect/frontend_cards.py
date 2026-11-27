@@ -271,6 +271,18 @@ def _build_vehicle_list(hass: HomeAssistant) -> list[dict[str, Any]]:
             ("fuel", "fuel_amount"),
             ("battery_voltage", "battery_voltage"),
             ("device_tracker", "location"),
+            # Command entities, present when the "add command entities"
+            # option is on: the card's action buttons
+            ("lock_doors", "lock_doors"),
+            ("trunk_lock", "switch_trunk"),
+            ("precondition", "switch_precondition"),
+            ("hvac", "switch_hvac"),
+            ("engine", "switch_engine"),
+            ("charge_now", "button_charge"),
+            ("lights", "button_lights"),
+            ("lights_horn", "button_lights_horn"),
+            ("refresh_location", "button_location"),
+            ("update", "update"),
         ]
 
         for card_key, suffix in simple_mappings:

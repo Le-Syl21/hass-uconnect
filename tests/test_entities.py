@@ -322,6 +322,10 @@ async def test_vehicle_card_websocket(
         hass, "binary_sensor", EV_VIN, "liftgate_locked"
     )
     assert "sunroof" not in entities
+    # Command entities, for the card's action buttons
+    assert entities["lock_doors"] == entity_id(hass, "lock", EV_VIN, "lock_doors")
+    assert entities["charge_now"] == entity_id(hass, "button", EV_VIN, "button_charge")
+    assert entities["update"] == entity_id(hass, "button", EV_VIN, "update")
 
 
 async def test_vehicle_card_yaml_dashboards(hass: HomeAssistant) -> None:
